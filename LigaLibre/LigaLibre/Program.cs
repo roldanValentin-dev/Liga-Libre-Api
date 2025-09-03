@@ -1,4 +1,6 @@
 
+using LigaLibre.Application;
+using LigaLibre.Infrastructure;
 using LigaLibre.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,8 +11,8 @@ namespace LigaLibre
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            builder.Services.AddDbContext<ApplicationDbContext>(options => 
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            builder.Services.AddApplication();
+            builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
