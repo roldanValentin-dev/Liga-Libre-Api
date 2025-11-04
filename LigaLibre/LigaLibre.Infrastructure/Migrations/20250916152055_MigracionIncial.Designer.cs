@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LigaLibre.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250827004447_MigracionInicial")]
-    partial class MigracionInicial
+    [Migration("20250916152055_MigracionIncial")]
+    partial class MigracionIncial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -109,7 +109,7 @@ namespace LigaLibre.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
+                    b.Property<string>("Adress")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -119,7 +119,7 @@ namespace LigaLibre.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("CreatedAT")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
@@ -132,7 +132,7 @@ namespace LigaLibre.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("NumberOfPartners")
+                    b.Property<int>("NumeroPartners")
                         .HasColumnType("int");
 
                     b.Property<string>("Phone")
@@ -140,7 +140,7 @@ namespace LigaLibre.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("StadiumName")
+                    b.Property<string>("StadiumBase")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");

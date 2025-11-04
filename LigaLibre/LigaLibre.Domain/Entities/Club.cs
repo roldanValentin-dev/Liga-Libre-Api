@@ -1,4 +1,5 @@
-﻿namespace LigaLibre.Domain.Entities
+﻿
+namespace LigaLibre.Domain.Entities
 {
     public class Club
     {
@@ -11,5 +12,10 @@
         public string Address { get; set; } = string.Empty;
         public string StadiumName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        //Navegacion
+        public ICollection<Player> Players { get; set; } = new List<Player>();
+        public ICollection<Match> HomeMatches { get; set; } = new List<Match>();
+        public ICollection<Match> AwayMatches { get; set; } = new List<Match>();
     }
 }

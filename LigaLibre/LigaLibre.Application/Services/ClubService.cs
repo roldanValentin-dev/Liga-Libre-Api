@@ -1,82 +1,129 @@
-﻿using LigaLibre.Application.DTOs;
+﻿
+using LigaLibre.Application.DTOs;
 using LigaLibre.Application.Interfaces;
 using LigaLibre.Domain.Entities;
 using LigaLibre.Domain.Interfaces;
+using Mapster;
 
-namespace LigaLibre.Application.Services
+
+namespace LigaLibre.Application.Services;
+
+
+public class ClubService(IClubRepository clubRepository, ISqsService sqsServices, IRedisCacheService cacheService) : IClubService
 {
-    public class ClubService : IClubService
+ 
+    public async Task<IEnumerable<ClubDto>> GetAllClubsAsync()
     {
-        private readonly IClubRepository _clubRepository;
+        var cacheClubs = await cacheService.GetAsync<IEnumerable<ClubDto>>("clubs:all");
 
-        public ClubService(IClubRepository clubRepository)
+        if (cacheClubs != null)
         {
-            _clubRepository = clubRepository;
+            return cacheClubs;
         }
 
-        public async Task<IEnumerable<ClubDto>> GetAllClubsAsync()
-        {
-            var clubs = await _clubRepository.GetAllAsync();
-            return clubs.Select(MapToDto);
-        }
-        public async Task<ClubDto?> GetClubByIdAsync(int id)
-        {
-            var club = await _clubRepository.GetByIdAsync(id);
-            return club != null ? MapToDto(club) : null;
-        }
-        public async Task<ClubDto> CreateClubAsync(CreateClubDto createClubDto)
-        {
-            var club = new Club
-            {
-                Name = createClubDto.Name,
-                City = createClubDto.City,
-                Email = createClubDto.Email,
-                NumberOfPartners = createClubDto.NumberOfPartners,
-                Phone = createClubDto.Phone,
-                Address = createClubDto.Address,
-                StadiumName = createClubDto.StadiumName,
-            };
+        var clubs = await clubRepository.GetAllAsync();
 
-            var createClub = await _clubRepository.CreateAsync(club);
-            return MapToDto(createClub);
-        }
-        public async Task<ClubDto> UpdateClubAsync(int id, CreateClubDto createClubDto)
-        {
-            var existingClub = await _clubRepository.GetByIdAsync(id);
-            if (existingClub == null)
-                throw new ArgumentException("Club not found");
+        await cacheService.SetAsync("clubs:all", clubs.Select(MapToDto), TimeSpan.FromMinutes(10));
+
+        return clubs.Select(MapToDto);
+
+    }
+    
+    //hacemos una expresion para implementar mapeo de mapster 
+    private static ClubDto MapToDto(Club club) => club.Adapt<ClubDto>();
 
 
-            existingClub.Name = createClubDto.Name;
-            existingClub.City = createClubDto.City;
-            existingClub.Email = createClubDto.Email;
-            existingClub.NumberOfPartners = createClubDto.NumberOfPartners;
-            existingClub.Phone = createClubDto.Phone;
-            existingClub.Address = createClubDto.Address;
-            existingClub.StadiumName = createClubDto.StadiumName;
+    public async Task<ClubDto?> GetClubByIdAsync(int id)
+    {
+        var cacheClub = await cacheService.GetAsync<ClubDto>($"club:{id}");
 
-            var updatedClub = await _clubRepository.UpdateAsync(existingClub);
-            return MapToDto(updatedClub);
-        }
-        public async Task<bool> DeleteClubAsync(int id)
+        if (cacheClub != null)
         {
-            return await _clubRepository.DeleteAsync(id);
+            return cacheClub;
         }
 
-        private static ClubDto MapToDto(Club club)
+        var club = await clubRepository.GetByIdAsync(id);
+        if (club == null) return null;
+        await cacheService.SetAsync($"club:{id}", MapToDto(club), TimeSpan.FromMinutes(10));
+        return MapToDto(club);
+
+    }
+
+    public async Task<ClubDto> CreateClubAsync(CreateClubDto createClubDto)
+    {
+
+        var club = createClubDto.Adapt<Club>();
+
+        var createdClub = await clubRepository.CreateAsync(club);
+
+        await sqsServices.SendMessageAsync(new
         {
-            return new ClubDto
-            {
-                Id = club.Id,
-                Name = club.Name,
-                City = club.City,
-                Email = club.Email,
-                NumberOfPartners = club.NumberOfPartners,
-                Phone = club.Phone,
-                Address = club.Address,
-                StadiumName = club.StadiumName,
-            };
-        }
+            EventType = "ClubCreated",
+            ClubId = createdClub.Id,
+            Name = createdClub.Name,
+            City = createdClub.City,
+            NumberOfPartners = createdClub.NumberOfPartners,
+            Email = createdClub.Email,
+            Phone = createdClub.Phone,
+            Address = createdClub.Address,
+            StadiumName = createdClub.StadiumName,
+            Timestamp = DateTime.UtcNow
+
+        }, QueueNames.ClubEvent);
+
+        await cacheService.RemoveAsync("clubs:all");
+
+
+        return MapToDto(createdClub);
+
+    }
+
+  
+    public async Task<ClubDto> UpdateClubAsync(int id, UpdateClubDto updateClubDto)
+    {
+        var existingClub = await clubRepository.GetByIdAsync(id);
+        if (existingClub == null)
+            throw new ArgumentException("Club not found");
+
+        updateClubDto.Adapt(existingClub);
+
+        var updatedClub = await clubRepository.UpdateAsync(existingClub);
+
+        await sqsServices.SendMessageAsync(new
+        {
+            EventType = "ClubUpdated",
+            ClubId = updatedClub.Id,
+            Name = updatedClub.Name,
+            City = updatedClub.City,
+            NumberOfPartners = updatedClub.NumberOfPartners,
+            Email = updatedClub.Email,
+            Phone = updatedClub.Phone,
+            Address = updatedClub.Address,
+            StadiumName = updatedClub.StadiumName,
+            Timestamp = DateTime.UtcNow
+
+        }, QueueNames.ClubEvent);
+
+        await cacheService.RemoveAsync("clubs:all");
+        await cacheService.RemoveAsync($"club:{updatedClub.Id}");
+
+        return MapToDto(updatedClub);
+    }
+
+ 
+    public async Task<bool> DeleteClubAsync(int id)
+    {
+        await sqsServices.SendMessageAsync(new
+        {
+            EventType = "ClubDeleted",
+            ClubId = id,
+            Timestamp = DateTime.UtcNow
+        }, QueueNames.ClubEvent);
+
+        await cacheService.RemoveAsync("clubs:all");
+        await cacheService.RemoveAsync($"club:{id}");
+
+        return await clubRepository.DeleteAsync(id);
 
     }
 }

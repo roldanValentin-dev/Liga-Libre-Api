@@ -1,4 +1,5 @@
-﻿using LigaLibre.Application.DTOs;
+﻿
+using LigaLibre.Application.DTOs;
 
 namespace LigaLibre.Application.Interfaces
 {
@@ -7,7 +8,7 @@ namespace LigaLibre.Application.Interfaces
         Task<IEnumerable<ClubDto>> GetAllClubsAsync();
         Task<ClubDto?> GetClubByIdAsync(int id);
         Task<ClubDto> CreateClubAsync(CreateClubDto createClubDto);
-        Task<ClubDto> UpdateClubAsync(int id, CreateClubDto createClubDto);
+        Task<ClubDto> UpdateClubAsync(int id, UpdateClubDto updateClubDto);
         Task<bool> DeleteClubAsync(int id);
     }
 }
