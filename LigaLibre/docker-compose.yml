@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ligalibre-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - ligalibre-network
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ligalibre-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ligalibre-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # LocalStack (AWS Services)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: ligalibre-localstack
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+    environment:
+      - SERVICES=sqs
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack-data:/tmp/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ligalibre-network
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+    driver: local
+  redis-data:
+    driver: local
+  localstack-data:
+    driver: local
+
+networks:
+  ligalibre-network:
+    driver: bridge

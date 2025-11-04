@@ -113,10 +113,17 @@ LigaLibre/
 ## 🔧 Requisitos Previos
 
 - **.NET 8.0 SDK** o superior
+- **Docker Desktop** (recomendado para desarrollo local)
+- **Visual Studio 2022** o **VS Code**
+
+### Opción 1: Usando Docker (Recomendado)
+- Docker Desktop instalado y corriendo
+- Ver [DOCKER.md](DOCKER.md) para instrucciones detalladas
+
+### Opción 2: Instalación Manual
 - **SQL Server** (LocalDB o instancia completa)
 - **Redis** (local o remoto)
-- **AWS Account** (para SQS) - Opcional
-- **Visual Studio 2022** o **VS Code**
+- **AWS Account** (para SQS) o LocalStack
 
 ## ⚙️ Configuración
 
@@ -127,12 +134,24 @@ git clone https://github.com/roldanValentin-dev/Liga-Libre-Api.git
 cd Liga-Libre-Api
 ```
 
-### 2. Configurar appsettings.json
+### 2. Iniciar servicios con Docker (Recomendado)
+
+```bash
+# Iniciar SQL Server, Redis y LocalStack
+docker-compose up -d
+
+# Verificar que los servicios estén corriendo
+docker-compose ps
+```
+
+Para más detalles sobre Docker, consulta [DOCKER.md](DOCKER.md)
+
+### 3. Configurar appsettings.json
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=LigaLibreDb;Trusted_Connection=true;TrustServerCertificate=true"
+    "DefaultConnection": "Server=localhost,1433;Database=LigaLibreDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true"
   },
   "Jwt": {
     "Key": "TU_CLAVE_SECRETA_MUY_SEGURA_DE_AL_MENOS_32_CARACTERES",
@@ -145,6 +164,7 @@ cd Liga-Libre-Api
   },
   "AWS": {
     "Region": "us-east-1",
+    "ServiceURL": "http://localhost:4566",
     "SQS": {
       "ClubEventQueue": "club-events",
       "PlayerEventQueue": "player-events",
@@ -155,14 +175,25 @@ cd Liga-Libre-Api
 }
 ```
 
-### 3. Aplicar migraciones
+### Configuración con Docker
+
+Si usas Docker (recomendado), los servicios estarán disponibles en:
+- **SQL Server**: `localhost:1433` (usuario: `sa`, password: `YourStrong@Passw0rd`)
+- **Redis**: `localhost:6379`
+- **LocalStack (SQS)**: `http://localhost:4566`
+
+Ver [DOCKER.md](DOCKER.md) para más detalles.
+}
+```
+
+### 4. Aplicar migraciones
 
 ```bash
 cd LigaLibre
 dotnet ef database update
 ```
 
-### 4. Ejecutar el proyecto
+### 5. Ejecutar el proyecto
 
 ```bash
 dotnet run --project LigaLibre
